@@ -46,20 +46,54 @@ router.patch("/:id", async (req, res) => {
 });
 
 // Delete a record by ID
-router.delete("/:id", async (req, res) => {
-  if (!ObjectId.isValid(req.params.id)) {
-    return res.status(400).send("Invalid ID format");
+router.delete("/", async (req, res) => {
+  const ids = req.body.ids;  // Assume IDs are passed as an array in the request body
+
+  // Validate all provided IDs
+  if (!ids.every(ObjectId.isValid)) {
+    return res.status(400).send("Invalid ID format in array");
   }
+
   try {
-    const query = { _id: new ObjectId(req.params.id) };
+    const query = { _id: { $in: ids.map(id => new ObjectId(id)) } };
     const collection = db.collection("records");
-    const result = await collection.deleteOne(query);
+    const result = await collection.deleteMany(query);
+
+    if (result.deletedCount === 0) {
+      return res.status(404).send("No records found to delete");
+    }
     res.status(200).send(result);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error deleting record");
+    res.status(500).send("Error deleting records");
   }
 });
+
+// I have also created another function
+/* 
+router.delete("/bulk-delete", async (req, res) => {
+  const ids = req.body.ids;  // Assume IDs are passed as an array in the request body
+
+  // Validate all provided IDs
+  if (!ids.every(ObjectId.isValid)) {
+    return res.status(400).send("Invalid ID format in array");
+  }
+
+  try {
+    const query = { _id: { $in: ids.map(id => new ObjectId(id)) } };
+    const collection = db.collection("records");
+    const result = await collection.deleteMany(query);
+
+    if (result.deletedCount === 0) {
+      return res.status(404).send("No records found to delete");
+    }
+    res.status(200).send({ deletedCount: result.deletedCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error deleting records");
+  }
+});
+*/
 
 
 export default router;
